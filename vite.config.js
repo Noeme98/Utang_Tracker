@@ -7,8 +7,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.png', 'icon-512.png'],
+      injectRegister: 'auto',
+      includeAssets: ['icon-192.png', 'icon-512.png', 'icon-512-maskable.png'],
       manifest: {
+        id: '/',
         name: 'TindaTrack',
         short_name: 'TindaTrack',
         description: 'Store credit and price tracker — works offline',
@@ -17,6 +19,7 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
+        scope: '/',
         icons: [
           {
             src: '/icon-192.png',
@@ -26,6 +29,12 @@ export default defineConfig({
           },
           {
             src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/icon-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
