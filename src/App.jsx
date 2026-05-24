@@ -92,7 +92,7 @@ function MainApp({ user, onLogout, onUpdateName }) {
     <div className="app">
       <header className="app-header">
         <div className="app-brand">
-          <span className="app-logo">🏪</span>
+          <img className="app-logo" src="/favicon.svg" alt="" width="36" height="36" />
           <div>
             <h1>{t('storeOf')} {user.name}</h1>
             <p className="app-subtitle">{pageTitle}</p>

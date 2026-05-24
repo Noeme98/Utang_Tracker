@@ -30,8 +30,11 @@
 }
 
 .app-logo {
-  font-size: 28px;
-  line-height: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: block;
 }
 
 .app-header h1 {
@@ -1171,9 +1174,11 @@
 }
 
 .auth-logo {
-  font-size: 48px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
   display: block;
-  margin-bottom: 8px;
+  margin: 0 auto 8px;
 }
 
 .auth-brand h1 {

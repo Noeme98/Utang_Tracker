@@ -51,7 +51,7 @@ export default function AuthScreen({ onSignup, onLogin }) {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="auth-logo">🏪</span>
+          <img className="auth-logo" src="/favicon.svg" alt="" width="64" height="64" />
           <h1>{t('appName')}</h1>
           <p className="auth-tagline">{t('auth.tagline')}</p>
         </div>

@@ -52,7 +52,7 @@ export function exportStoreData({ debtors, transactions, items, storeName }) {
   ]
 
   const combined = [
-    `# Utang Tracker Export - ${date}`,
+    `# TindaTrack Export - ${date}`,
     '',
     '# Debtors',
     ...debtorRows,
@@ -64,5 +64,5 @@ export function exportStoreData({ debtors, transactions, items, storeName }) {
     ...itemRows,
   ]
 
-  downloadCsv(`utang-tracker-${safeName}-${date}.csv`, combined)
+  downloadCsv(`tindatrack-${safeName}-${date}.csv`, combined)
 }

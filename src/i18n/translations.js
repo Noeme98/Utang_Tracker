@@ -1,6 +1,6 @@
 export const translations = {
   fil: {
-    appName: 'Utang Tracker',
+    appName: 'TindaTrack',
     storeOf: 'Tindahan ni',
     loading: 'Naglo-load...',
     loadingData: 'Kinukuha ang data...',
@@ -144,7 +144,7 @@ export const translations = {
       exportSuccess: 'Na-export ang data!',
       logout: 'Log Out',
       logoutConfirm: 'Sigurado ka bang gusto mong mag-log out?',
-      version: 'Utang Tracker v1.0',
+      version: 'TindaTrack v1.0',
     },
     errors: {
       generic: 'May error. Subukan ulit.',
@@ -159,7 +159,7 @@ export const translations = {
     },
   },
   en: {
-    appName: 'Utang Tracker',
+    appName: 'TindaTrack',
     storeOf: 'Store of',
     loading: 'Loading...',
     loadingData: 'Loading data...',
@@ -303,7 +303,7 @@ export const translations = {
       exportSuccess: 'Data exported!',
       logout: 'Log Out',
       logoutConfirm: 'Are you sure you want to log out?',
-      version: 'Utang Tracker v1.0',
+      version: 'TindaTrack v1.0',
     },
     errors: {
       generic: 'Something went wrong. Please try again.',
