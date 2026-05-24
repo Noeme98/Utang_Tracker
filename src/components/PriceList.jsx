@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react'
+import { useLanguage } from '../i18n/LanguageProvider'
 import { formatPeso } from '../utils/helpers'
 
 export default function PriceList({ items, loading, error, onSaveItem, onDeleteItem, onReload }) {
+  const { t } = useLanguage()
   const [search, setSearch] = useState('')
   const [itemName, setItemName] = useState('')
   const [itemPrice, setItemPrice] = useState('')
   const [formError, setFormError] = useState('')
   const [flash, setFlash] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -26,6 +30,39 @@ export default function PriceList({ items, loading, error, onSaveItem, onDeleteI
     setTimeout(() => setFlash(''), 2500)
   }
 
+  function openAddForm() {
+    setShowAddForm(true)
+    setFormError('')
+  }
+
+  function closeAddForm() {
+    setShowAddForm(false)
+    setEditingId(null)
+    setItemName('')
+    setItemPrice('')
+    setFormError('')
+  }
+
+  function toggleAddForm() {
+    if (showAddForm) {
+      closeAddForm()
+    } else {
+      setEditingId(null)
+      setItemName('')
+      setItemPrice('')
+      setFormError('')
+      setShowAddForm(true)
+    }
+  }
+
+  function startEdit(item) {
+    setEditingId(item.id)
+    setItemName(item.name)
+    setItemPrice(String(item.price))
+    setFormError('')
+    setShowAddForm(true)
+  }
+
   async function handleSave(e) {
     e.preventDefault()
     setFormError('')
@@ -35,8 +72,12 @@ export default function PriceList({ items, loading, error, onSaveItem, onDeleteI
       const saved = await onSaveItem(itemName, itemPrice)
       setItemName('')
       setItemPrice('')
+      setEditingId(null)
       setSearch(saved.name)
-      showFlash(`Na-save: ${saved.name} — ${formatPeso(saved.price)}`)
+      setShowAddForm(false)
+      showFlash(
+        t('prices.saved', { name: saved.name, price: formatPeso(saved.price) }),
+      )
     } catch (err) {
       setFormError(err.message)
     } finally {
@@ -44,17 +85,12 @@ export default function PriceList({ items, loading, error, onSaveItem, onDeleteI
     }
   }
 
-  function fillForm(item) {
-    setItemName(item.name)
-    setItemPrice(String(item.price))
-    setFormError('')
-  }
-
   async function handleDelete(item) {
-    if (!confirm(`Tanggalin ang "${item.name}"?`)) return
+    if (!confirm(t('prices.deleteConfirm', { name: item.name }))) return
     try {
       await onDeleteItem(item.id)
-      showFlash(`Tinanggal: ${item.name}`)
+      if (editingId === item.id) closeAddForm()
+      showFlash(t('prices.deleted', { name: item.name }))
     } catch (err) {
       setFormError(err.message)
     }
@@ -62,10 +98,10 @@ export default function PriceList({ items, loading, error, onSaveItem, onDeleteI
 
   if (loading) {
     return (
-      <motion className="loading-inline">
+      <div className="loading-inline">
         <span className="loading-spinner" />
-        <p>Kinukuha ang presyo...</p>
-      </motion>
+        <p>{t('loadingPrices')}</p>
+      </div>
     )
   }
 
@@ -74,7 +110,7 @@ export default function PriceList({ items, loading, error, onSaveItem, onDeleteI
       <div className="empty-state">
         <p>{error}</p>
         <button type="button" className="btn btn-primary" onClick={onReload}>
-          Subukan ulit
+          {t('tryAgain')}
         </button>
       </div>
     )
@@ -82,16 +118,20 @@ export default function PriceList({ items, loading, error, onSaveItem, onDeleteI
 
   return (
     <div className="page price-page">
-      <section className="price-lookup">
-        <label className="field">
-          <span>Hanapin ang presyo</span>
+      <section className="price-search-wrap">
+        <div className="price-search-field">
+          <span className="price-search-icon" aria-hidden>
+            🔍
+          </span>
           <input
             type="search"
+            className="price-search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Hal. bigas, shampoo, kape..."
+            placeholder={t('prices.searchPlaceholder')}
+            aria-label={t('prices.searchPrice')}
           />
-        </label>
+        </div>
 
         {lookupMatch && (
           <div className="price-match-card">
@@ -102,90 +142,133 @@ export default function PriceList({ items, loading, error, onSaveItem, onDeleteI
 
         {search.trim() && !lookupMatch && filtered.length === 0 && (
           <p className="price-no-match">
-            Walang naka-record na &quot;{search.trim()}&quot; — i-add sa baba.
+            {t('prices.noRecord', { name: search.trim() })}
           </p>
         )}
       </section>
 
-      <section className="price-add-card">
-        <h2>I-record ang Presyo</h2>
-        <p className="price-add-hint">Maglagay ng item at presyo — ma-save agad.</p>
-
-        {flash && <p className="form-success">{flash}</p>}
-        {formError && <p className="form-error">{formError}</p>}
-
-        <form className="price-add-form" onSubmit={handleSave}>
-          <label className="field">
-            <span>Item *</span>
-            <input
-              type="text"
-              value={itemName}
-              onChange={(e) => setItemName(e.target.value)}
-              placeholder="Hal. Lucky Me Pancit Canton"
-              disabled={saving}
-            />
-          </label>
-          <label className="field">
-            <span>Presyo (₱) *</span>
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={itemPrice}
-              onChange={(e) => setItemPrice(e.target.value)}
-              placeholder="0.00"
-              disabled={saving}
-            />
-          </label>
-          <button type="submit" className="btn btn-primary btn-full" disabled={saving}>
-            {saving ? 'Sine-save...' : 'I-save ang Presyo'}
+      <section className="price-add-section">
+        <div className="price-add-toggle">
+          <div className="price-add-toggle-text">
+            <h2>{t('prices.recordPrice')}</h2>
+            <p>{showAddForm ? t('prices.recordHint') : t('prices.tapToAdd')}</p>
+          </div>
+          <button
+            type="button"
+            className={`price-add-btn ${showAddForm ? 'is-open' : ''}`}
+            onClick={toggleAddForm}
+            aria-expanded={showAddForm}
+            aria-label={showAddForm ? t('close') : t('prices.addItem')}
+          >
+            {showAddForm ? '✕' : '+'}
           </button>
-        </form>
+        </div>
+
+        {showAddForm && (
+          <div className="price-add-panel">
+            {flash && <p className="form-success">{flash}</p>}
+            {formError && <p className="form-error">{formError}</p>}
+
+            <form className="price-add-form" onSubmit={handleSave}>
+              <label className="field">
+                <span>{t('prices.item')} *</span>
+                <input
+                  type="text"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  placeholder={t('prices.itemPlaceholder')}
+                  disabled={saving}
+                  autoFocus
+                />
+              </label>
+              <label className="field">
+                <span>{t('prices.price')} *</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={itemPrice}
+                  onChange={(e) => setItemPrice(e.target.value)}
+                  placeholder="0.00"
+                  disabled={saving}
+                />
+              </label>
+              <div className="price-add-form-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={closeAddForm}
+                  disabled={saving}
+                >
+                  {t('cancel')}
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? t('saving') : t('prices.savePrice')}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </section>
 
-      <section className="section">
-        <div className="section-header">
-          <h2>Lista ng Presyo</h2>
-          <span className="price-count">{items.length} items</span>
+      {!showAddForm && flash && <p className="form-success price-flash">{flash}</p>}
+
+      <section className="price-list-section">
+        <div className="price-list-header">
+          <h2>{t('prices.priceList')}</h2>
+          <span className="price-count-badge" aria-label={t('prices.itemsCount', { n: items.length })}>
+            {items.length}
+          </span>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="empty-state">
-            <p>{search ? 'Walang match.' : 'Walang items pa. Mag-add sa taas!'}</p>
+          <div className="price-empty">
+            <span className="price-empty-icon" aria-hidden>
+              🏷️
+            </span>
+            <p className="price-empty-title">
+              {search ? t('prices.noMatch') : t('prices.emptyTitle')}
+            </p>
+            <p className="price-empty-hint">
+              {search ? t('prices.emptySearchHint') : t('prices.emptyHint')}
+            </p>
+            {!search && (
+              <button type="button" className="btn btn-primary price-empty-cta" onClick={openAddForm}>
+                + {t('prices.addItem')}
+              </button>
+            )}
           </div>
         ) : (
-          <div className="card-list">
+          <div className="price-grid">
             {filtered.map((item) => (
-              <motion key={item.id} className="list-card price-item-card">
-                <button
-                  type="button"
-                  className="price-item-main"
-                  onClick={() => fillForm(item)}
-                >
-                  <span className="list-card-title">{item.name}</span>
-                  <span className="price-item-amount">{formatPeso(item.price)}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn-icon price-item-delete"
-                  onClick={() => handleDelete(item)}
-                  aria-label={`Delete ${item.name}`}
-                >
-                  ✕
-                </button>
-              </motion>
+              <article key={item.id} className="price-grid-card">
+                <h3 className="price-grid-name">{item.name}</h3>
+                <p className="price-grid-amount">{formatPeso(item.price)}</p>
+                <div className="price-grid-actions">
+                  <button
+                    type="button"
+                    className="price-grid-btn price-grid-btn-edit"
+                    onClick={() => startEdit(item)}
+                    aria-label={`${t('prices.edit')}: ${item.name}`}
+                    title={t('prices.edit')}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    className="price-grid-btn price-grid-btn-delete"
+                    onClick={() => handleDelete(item)}
+                    aria-label={`${t('prices.delete')}: ${item.name}`}
+                    title={t('prices.delete')}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </article>
             ))}
           </div>
         )}
       </section>
-    </div>
-  )
-}
-
-function motion({ className, children, ...props }) {
-  return (
-    <div className={className} {...props}>
-      {children}
     </div>
   )
 }

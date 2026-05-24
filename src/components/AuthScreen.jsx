@@ -5,7 +5,6 @@ export default function AuthScreen({ onSignup, onLogin }) {
   const { t } = useLanguage()
   const [mode, setMode] = useState('login')
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -16,7 +15,6 @@ export default function AuthScreen({ onSignup, onLogin }) {
     setError('')
     setMessage('')
     if (next === 'signup') {
-      setName('')
       setPassword('')
     }
   }
@@ -30,8 +28,8 @@ export default function AuthScreen({ onSignup, onLogin }) {
     try {
       const result =
         mode === 'signup'
-          ? await onSignup(name, email, password)
-          : await onLogin(email, password)
+          ? await onSignup(name, password)
+          : await onLogin(name, password)
 
       if (!result.ok) {
         setError(result.error)
@@ -41,9 +39,8 @@ export default function AuthScreen({ onSignup, onLogin }) {
       if (result.message) {
         setMessage(result.message)
         setMode('login')
-        setEmail(result.email || email)
+        setName(result.loginName || name)
         setPassword('')
-        setName('')
       }
     } finally {
       setSubmitting(false)
@@ -53,11 +50,11 @@ export default function AuthScreen({ onSignup, onLogin }) {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <motion className="auth-brand">
+        <div className="auth-brand">
           <span className="auth-logo">🏪</span>
           <h1>{t('appName')}</h1>
           <p className="auth-tagline">{t('auth.tagline')}</p>
-        </motion>
+        </div>
 
         <div className="auth-tabs">
           <button
@@ -80,31 +77,20 @@ export default function AuthScreen({ onSignup, onLogin }) {
           {error && <p className="form-error">{error}</p>}
           {message && <p className="form-success">{message}</p>}
 
-          {mode === 'signup' && (
-            <label className="field">
-              <span>{t('auth.yourName')} *</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Hal. Maria Santos"
-                autoFocus
-                disabled={submitting}
-              />
-              <span className="field-hint">{t('auth.nameHint')}</span>
-            </label>
-          )}
-
           <label className="field">
-            <span>{t('auth.email')} *</span>
+            <span>{t('auth.yourName')} *</span>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@example.com"
-              autoFocus={mode === 'login'}
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('auth.namePlaceholder')}
+              autoComplete="username"
+              autoFocus
               disabled={submitting}
             />
+            <span className="field-hint">
+              {mode === 'signup' ? t('auth.nameHint') : t('auth.loginHint')}
+            </span>
           </label>
 
           <label className="field">
@@ -113,7 +99,12 @@ export default function AuthScreen({ onSignup, onLogin }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'signup' ? 'Min. 6 characters' : '••••••••'}
+              placeholder={
+                mode === 'signup'
+                  ? t('auth.passwordPlaceholderSignup')
+                  : t('auth.passwordPlaceholderLogin')
+              }
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               disabled={submitting}
             />
           </label>
@@ -129,8 +120,4 @@ export default function AuthScreen({ onSignup, onLogin }) {
       </div>
     </div>
   )
-}
-
-function motion({ className, children }) {
-  return <div className={className}>{children}</div>
 }

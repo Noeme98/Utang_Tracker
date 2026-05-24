@@ -4,6 +4,17 @@ export function generateId() {
   return crypto.randomUUID()
 }
 
+/** Login id derived from display name (e.g. "Maria Santos" → "maria.santos") */
+export function toLoginId(name) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '.')
+    .replace(/[^a-z0-9._-]/g, '')
+    .replace(/\.+/g, '.')
+    .replace(/^\.+|\.+$/g, '')
+}
+
 export function formatPeso(amount) {
   return new Intl.NumberFormat('en-PH', {
     style: 'currency',

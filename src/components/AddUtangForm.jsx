@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useLanguage } from '../i18n/LanguageProvider'
 import { todayISO } from '../utils/helpers'
 import Modal from './Modal'
 
 export default function AddUtangForm({ debtors, preselectedDebtorId, onClose, onSubmit }) {
+  const { t } = useLanguage()
   const [debtorId, setDebtorId] = useState(preselectedDebtorId || '')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
@@ -13,16 +15,16 @@ export default function AddUtangForm({ debtors, preselectedDebtorId, onClose, on
   async function handleSubmit(e) {
     e.preventDefault()
     if (!debtorId) {
-      setError('Pumili ng umutang.')
+      setError(t('utang.selectDebtor'))
       return
     }
     const num = parseFloat(amount)
     if (!num || num <= 0) {
-      setError('Maglagay ng valid na amount.')
+      setError(t('utang.validAmount'))
       return
     }
     if (!description.trim()) {
-      setError('Maglagay ng item description.')
+      setError(t('utang.needDescription'))
       return
     }
     setSubmitting(true)
@@ -38,17 +40,17 @@ export default function AddUtangForm({ debtors, preselectedDebtorId, onClose, on
   }
 
   return (
-    <Modal title="Bagong Utang" onClose={onClose}>
+    <Modal title={t('utang.newUtang')} onClose={onClose}>
       <form className="form" onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
         <label className="field">
-          <span>Umutang *</span>
+          <span>{t('utang.debtor')} *</span>
           <select
             value={debtorId}
             onChange={(e) => setDebtorId(e.target.value)}
             disabled={!!preselectedDebtorId}
           >
-            <option value="">— Pumili —</option>
+            <option value="">{t('utang.choose')}</option>
             {debtors.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -57,7 +59,7 @@ export default function AddUtangForm({ debtors, preselectedDebtorId, onClose, on
           </select>
         </label>
         <label className="field">
-          <span>Amount (₱) *</span>
+          <span>{t('utang.amount')} *</span>
           <input
             type="number"
             min="0.01"
@@ -68,20 +70,20 @@ export default function AddUtangForm({ debtors, preselectedDebtorId, onClose, on
           />
         </label>
         <label className="field">
-          <span>Items / Description *</span>
+          <span>{t('utang.items')} *</span>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Hal. bigas, shampoo"
+            placeholder={t('utang.itemsPlaceholder')}
           />
         </label>
         <label className="field">
-          <span>Petsa</span>
+          <span>{t('utang.date')}</span>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <button type="submit" className="btn btn-primary btn-full" disabled={submitting}>
-          {submitting ? 'Sine-save...' : 'I-record ang Utang'}
+          {submitting ? t('saving') : t('utang.recordUtang')}
         </button>
       </form>
     </Modal>

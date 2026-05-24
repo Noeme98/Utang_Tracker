@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useLanguage } from '../i18n/LanguageProvider'
 import Modal from './Modal'
 
 export default function AddDebtorForm({ onClose, onSubmit }) {
+  const { t } = useLanguage()
   const [name, setName] = useState('')
   const [contact, setContact] = useState('')
   const [error, setError] = useState('')
@@ -10,7 +12,7 @@ export default function AddDebtorForm({ onClose, onSubmit }) {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim()) {
-      setError('Kailangan ang pangalan.')
+      setError(t('debtors.nameRequired'))
       return
     }
     setSubmitting(true)
@@ -26,30 +28,32 @@ export default function AddDebtorForm({ onClose, onSubmit }) {
   }
 
   return (
-    <Modal title="Bagong Umutang" onClose={onClose}>
+    <Modal title={t('debtors.newDebtor')} onClose={onClose}>
       <form className="form" onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
         <label className="field">
-          <span>Pangalan *</span>
+          <span>{t('debtors.name')} *</span>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Hal. Juan Dela Cruz"
+            placeholder={t('debtors.namePlaceholder')}
             autoFocus
           />
         </label>
         <label className="field">
-          <span>Contact (optional)</span>
+          <span>
+            {t('debtors.contact')} ({t('optional')})
+          </span>
           <input
             type="tel"
             value={contact}
             onChange={(e) => setContact(e.target.value)}
-            placeholder="09XX XXX XXXX"
+            placeholder={t('debtors.contactPlaceholder')}
           />
         </label>
         <button type="submit" className="btn btn-primary btn-full" disabled={submitting}>
-          {submitting ? 'Sine-save...' : 'I-save'}
+          {submitting ? t('saving') : t('save')}
         </button>
       </form>
     </Modal>

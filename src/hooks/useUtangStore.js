@@ -1,15 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { authErrorMessage, mapDebtor, mapTransaction } from '../lib/mappers'
+import { getMessage } from '../i18n/LanguageProvider'
+import {
+  getDebtorsByUser,
+  getTransactionsByUser,
+  insertDebtor,
+  insertTransaction,
+} from '../lib/localDb'
+import { mapDebtor, mapTransaction } from '../lib/mappers'
 
 const emptyState = { debtors: [], transactions: [] }
+
+const LANG_KEY = 'utang-tracker-lang'
+
+function currentLang() {
+  return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'fil'
+}
 
 export function useUtangStore(userId) {
   const [state, setState] = useState(emptyState)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const loadData = useCallback(async (uid) => {
+  const loadData = useCallback((uid) => {
     if (!uid) {
       setState(emptyState)
       setLoading(false)
@@ -19,32 +31,16 @@ export function useUtangStore(userId) {
     setLoading(true)
     setError(null)
 
-    const [debtorsRes, transactionsRes] = await Promise.all([
-      supabase
-        .from('debtors')
-        .select('*')
-        .eq('user_id', uid)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', uid)
-        .order('date', { ascending: false })
-        .order('created_at', { ascending: false }),
-    ])
-
-    if (debtorsRes.error || transactionsRes.error) {
-      const err = debtorsRes.error || transactionsRes.error
-      setError(authErrorMessage(err))
+    try {
+      setState({
+        debtors: getDebtorsByUser(uid).map(mapDebtor),
+        transactions: getTransactionsByUser(uid).map(mapTransaction),
+      })
+    } catch {
+      setError(getMessage(currentLang(), 'errors.loadData'))
       setState(emptyState)
-      setLoading(false)
-      return
     }
 
-    setState({
-      debtors: (debtorsRes.data ?? []).map(mapDebtor),
-      transactions: (transactionsRes.data ?? []).map(mapTransaction),
-    })
     setLoading(false)
   }, [])
 
@@ -54,19 +50,8 @@ export function useUtangStore(userId) {
 
   const addDebtor = useCallback(
     async (name, contact) => {
-      const { data, error } = await supabase
-        .from('debtors')
-        .insert({
-          user_id: userId,
-          name: name.trim(),
-          contact: contact?.trim() || '',
-        })
-        .select()
-        .single()
-
-      if (error) throw new Error(authErrorMessage(error))
-
-      const debtor = mapDebtor(data)
+      const row = insertDebtor(userId, name, contact)
+      const debtor = mapDebtor(row)
       setState((prev) => ({ ...prev, debtors: [...prev.debtors, debtor] }))
       return debtor.id
     },
@@ -75,22 +60,8 @@ export function useUtangStore(userId) {
 
   const addUtang = useCallback(
     async (debtorId, amount, description, date) => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: userId,
-          debtor_id: debtorId,
-          type: 'utang',
-          amount: Number(amount),
-          description: description.trim(),
-          date,
-        })
-        .select()
-        .single()
-
-      if (error) throw new Error(authErrorMessage(error))
-
-      const transaction = mapTransaction(data)
+      const row = insertTransaction(userId, debtorId, 'utang', amount, description, date)
+      const transaction = mapTransaction(row)
       setState((prev) => ({
         ...prev,
         transactions: [transaction, ...prev.transactions],
@@ -101,22 +72,8 @@ export function useUtangStore(userId) {
 
   const addBayad = useCallback(
     async (debtorId, amount, date) => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: userId,
-          debtor_id: debtorId,
-          type: 'bayad',
-          amount: Number(amount),
-          description: '',
-          date,
-        })
-        .select()
-        .single()
-
-      if (error) throw new Error(authErrorMessage(error))
-
-      const transaction = mapTransaction(data)
+      const row = insertTransaction(userId, debtorId, 'bayad', amount, '', date)
+      const transaction = mapTransaction(row)
       setState((prev) => ({
         ...prev,
         transactions: [transaction, ...prev.transactions],

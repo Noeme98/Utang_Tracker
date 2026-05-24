@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getMessage } from '../i18n/LanguageProvider'
-import { supabase } from '../lib/supabase'
 import { authErrorMessage } from '../lib/mappers'
+import {
+  clearSession,
+  createUser,
+  findUserById,
+  getCurrentUserId,
+  setActiveSession,
+  toProfile,
+  updateUserProfile,
+  verifyLogin,
+} from '../lib/localDb'
 
 const LANG_KEY = 'utang-tracker-lang'
 
@@ -9,18 +18,11 @@ function currentLang() {
   return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'fil'
 }
 
-async function loadUserProfile(authUser) {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, email')
-    .eq('id', authUser.id)
-    .maybeSingle()
-
-  return {
-    id: authUser.id,
-    name: profile?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || '',
-    email: profile?.email || authUser.email || '',
-  }
+function loadSessionUser() {
+  const userId = getCurrentUserId()
+  if (!userId) return null
+  const user = findUserById(userId)
+  return user ? toProfile(user) : null
 }
 
 export function useAuth() {
@@ -28,130 +30,80 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let active = true
-
-    async function initSession() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!active) return
-
-      if (session?.user) {
-        const profile = await loadUserProfile(session.user)
-        if (active) setUser(profile)
-      }
-
-      if (active) setLoading(false)
-    }
-
-    initSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setUser(null)
-          setLoading(false)
-          return
-        }
-
-        if (session?.user) {
-          const profile = await loadUserProfile(session.user)
-          setUser(profile)
-        } else {
-          setUser(null)
-        }
-        setLoading(false)
-      },
-    )
-
-    return () => {
-      active = false
-      subscription.unsubscribe()
-    }
+    setUser(loadSessionUser())
+    setLoading(false)
   }, [])
 
-  const signup = useCallback(async (name, email, password) => {
+  const signup = useCallback(async (displayName, password) => {
     const lang = currentLang()
-    const trimmedName = name.trim()
-    const trimmedEmail = email.trim().toLowerCase()
+    const trimmedName = displayName.trim()
 
-    if (!trimmedName || !trimmedEmail || !password) {
+    if (!trimmedName || !password) {
       return { ok: false, error: getMessage(lang, 'auth.fillAllFields') }
     }
     if (password.length < 6) {
       return { ok: false, error: getMessage(lang, 'auth.passwordMin') }
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email: trimmedEmail,
-      password,
-      options: { data: { name: trimmedName } },
-    })
-
-    if (error) {
-      return { ok: false, error: authErrorMessage(error) }
+    const result = createUser(trimmedName, password)
+    if (result.error) {
+      return { ok: false, error: authErrorMessage(result.error) }
     }
 
-    if (data.user) {
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        name: trimmedName,
-        email: trimmedEmail,
-      })
-    }
-
-    // Always sign out after signup — user must log in manually
-    await supabase.auth.signOut()
+    clearSession()
     setUser(null)
 
     return {
       ok: true,
       message: getMessage(lang, 'auth.signupSuccess'),
-      email: trimmedEmail,
+      loginName: trimmedName,
     }
   }, [])
 
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (displayName, password) => {
     const lang = currentLang()
-    const trimmedEmail = email.trim().toLowerCase()
+    const trimmedName = displayName.trim()
 
-    if (!trimmedEmail || !password) {
-      return { ok: false, error: getMessage(lang, 'auth.fillEmailPassword') }
+    if (!trimmedName || !password) {
+      return { ok: false, error: getMessage(lang, 'auth.fillNamePassword') }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password,
-    })
-
-    if (error) {
-      return { ok: false, error: authErrorMessage(error) }
+    const result = verifyLogin(trimmedName, password)
+    if (result.error) {
+      return { ok: false, error: authErrorMessage(result.error) }
     }
 
+    setActiveSession(result.user.id)
+    setUser(toProfile(result.user))
     return { ok: true }
   }, [])
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut()
+    clearSession()
     setUser(null)
   }, [])
 
-  const updateProfile = useCallback(async (name) => {
-    if (!user) return
-    const trimmedName = name.trim()
-    const lang = currentLang()
+  const updateProfile = useCallback(
+    async (name) => {
+      if (!user) return
+      const lang = currentLang()
+      const trimmedName = name.trim()
 
-    if (!trimmedName) {
-      throw new Error(getMessage(lang, 'auth.nameRequired'))
-    }
+      if (!trimmedName) {
+        throw new Error(getMessage(lang, 'auth.nameRequired'))
+      }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ name: trimmedName })
-      .eq('id', user.id)
+      const result = updateUserProfile(user.id, trimmedName)
+      if (result.error) throw new Error(authErrorMessage(result.error))
 
-    if (error) throw new Error(authErrorMessage(error))
-
-    setUser((prev) => (prev ? { ...prev, name: trimmedName } : prev))
-  }, [user])
+      setUser((prev) =>
+        prev
+          ? { ...prev, name: trimmedName, username: result.user.username }
+          : prev,
+      )
+    },
+    [user],
+  )
 
   return {
     user,

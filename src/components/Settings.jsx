@@ -79,10 +79,6 @@ export default function Settings({
               disabled={saving}
             />
           </label>
-          <label className="field">
-            <span>{t('settings.accountEmail')}</span>
-            <input type="email" value={user.email} disabled />
-          </label>
           <button type="submit" className="btn btn-primary btn-full" disabled={saving}>
             {saving ? t('saving') : t('settings.updateName')}
           </button>

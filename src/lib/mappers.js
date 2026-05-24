@@ -1,3 +1,11 @@
+import { getMessage } from '../i18n/LanguageProvider'
+
+const LANG_KEY = 'utang-tracker-lang'
+
+function lang() {
+  return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'fil'
+}
+
 export function mapDebtor(row) {
   return {
     id: row.id,
@@ -30,29 +38,28 @@ export function mapStoreItem(row) {
 }
 
 export function authErrorMessage(error) {
-  const msg = error?.message ?? 'May error. Subukan ulit.'
+  const l = lang()
+  const code = error?.code
+  const msg = error?.message ?? ''
 
-  if (msg.includes('Invalid login credentials')) {
-    return 'Mali ang email o password.'
+  if (code === 'USERNAME_EXISTS' || code === 'EMAIL_EXISTS' || msg.includes('User already registered')) {
+    return getMessage(l, 'errors.nameExists')
   }
-  if (msg.includes('User already registered')) {
-    return 'May account na sa email na ito.'
+  if (code === 'INVALID_USERNAME') {
+    return getMessage(l, 'errors.invalidUsername')
+  }
+  if (code === 'NAME_REQUIRED') {
+    return getMessage(l, 'auth.nameRequired')
+  }
+  if (code === 'INVALID_CREDENTIALS' || msg.includes('Invalid login credentials')) {
+    return getMessage(l, 'errors.invalidCredentials')
+  }
+  if (code === 'USER_NOT_FOUND') {
+    return getMessage(l, 'errors.userNotFound')
   }
   if (msg.includes('Password should be at least')) {
-    return 'Ang password ay dapat 6 characters pataas.'
-  }
-  if (msg.includes('Unable to validate email')) {
-    return 'Maglagay ng valid na email.'
-  }
-  if (msg.includes('Email not confirmed')) {
-    return 'I-confirm muna ang email mo bago mag-log in.'
-  }
-  if (msg.includes('Could not find the table')) {
-    return 'Hindi pa naka-setup ang database. I-run ang supabase/schema.sql sa Supabase SQL Editor.'
-  }
-  if (msg.includes('store_items')) {
-    return 'Kailangan i-run ang store_items migration sa Supabase SQL Editor.'
+    return getMessage(l, 'auth.passwordMin')
   }
 
-  return msg
+  return msg || getMessage(l, 'errors.generic')
 }

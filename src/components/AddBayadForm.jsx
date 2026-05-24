@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLanguage } from '../i18n/LanguageProvider'
 import { formatPeso, getDebtorBalance, todayISO } from '../utils/helpers'
 import Modal from './Modal'
 
@@ -9,6 +10,7 @@ export default function AddBayadForm({
   onClose,
   onSubmit,
 }) {
+  const { t } = useLanguage()
   const [debtorId, setDebtorId] = useState(preselectedDebtorId || '')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(todayISO())
@@ -21,12 +23,12 @@ export default function AddBayadForm({
   async function handleSubmit(e) {
     e.preventDefault()
     if (!debtorId) {
-      setError('Pumili ng umutang.')
+      setError(t('utang.selectDebtor'))
       return
     }
     const num = parseFloat(amount)
     if (!num || num <= 0) {
-      setError('Maglagay ng valid na amount.')
+      setError(t('utang.validAmount'))
       return
     }
     setSubmitting(true)
@@ -42,17 +44,17 @@ export default function AddBayadForm({
   }
 
   return (
-    <Modal title="Record Bayad" onClose={onClose}>
+    <Modal title={t('bayad.recordBayad')} onClose={onClose}>
       <form className="form" onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
         <label className="field">
-          <span>Umutang *</span>
+          <span>{t('utang.debtor')} *</span>
           <select
             value={debtorId}
             onChange={(e) => setDebtorId(e.target.value)}
             disabled={!!preselectedDebtorId}
           >
-            <option value="">— Pumili —</option>
+            <option value="">{t('utang.choose')}</option>
             {debtors.map((d) => {
               const bal = getDebtorBalance(d.id, transactions)
               return (
@@ -64,10 +66,12 @@ export default function AddBayadForm({
           </select>
         </label>
         {debtorId && balance > 0 && (
-          <p className="balance-hint">Balance: {formatPeso(balance)}</p>
+          <p className="balance-hint">
+            {t('bayad.balance')}: {formatPeso(balance)}
+          </p>
         )}
         <label className="field">
-          <span>Amount Paid (₱) *</span>
+          <span>{t('bayad.amountPaid')} *</span>
           <input
             type="number"
             min="0.01"
@@ -78,11 +82,11 @@ export default function AddBayadForm({
           />
         </label>
         <label className="field">
-          <span>Petsa</span>
+          <span>{t('utang.date')}</span>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <button type="submit" className="btn btn-primary btn-full" disabled={submitting}>
-          {submitting ? 'Sine-save...' : 'I-record ang Bayad'}
+          {submitting ? t('saving') : t('bayad.saveBayad')}
         </button>
       </form>
     </Modal>
